@@ -1,0 +1,14 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {facts,content,identifier,language,categoryName,profileFields,reminderFields} from '../src/validation.js';
+test('valid facts preserve unknown values',()=>{const f=facts({eventName:'Science Exhibition'});assert.equal(f.eventDate,null);assert.equal(f.participantCount,null)});
+test('unknown facts rejected',()=>assert.throws(()=>facts({eventName:'A',fabricated:true})));
+test('invalid language rejected',()=>assert.throws(()=>language('fr')));
+test('invalid IDs rejected',()=>assert.throws(()=>identifier('1 OR 1=1')));
+test('generated content must require review',()=>assert.throws(()=>content({headline:'H',language:'en',openingParagraph:'O',bodyParagraphs:['B'],requiresHumanReview:false},'en')));
+test('valid structured content',()=>assert.equal(content({headline:'H',language:'hi',openingParagraph:'O',bodyParagraphs:['B'],requiresHumanReview:true},'hi').requiresHumanReview,true));
+test('category names are trimmed and bounded',()=>assert.equal(categoryName('  Education  '),'Education'));
+test('profile changes require valid name and email',()=>assert.deepEqual(profileFields({fullName:'Pressly User',email:'USER@example.com'}),{fullName:'Pressly User',email:'user@example.com'}));
+test('reminders accept future date and normalize time',()=>assert.deepEqual(reminderFields({title:'Launch',eventDate:'2030-05-20',eventTime:'09:30',note:''},'2030-05-01'),{title:'Launch',eventDate:'2030-05-20',eventTime:'09:30:00',note:null}));
+test('reminders reject past or impossible dates',()=>{assert.throws(()=>reminderFields({title:'Launch',eventDate:'2030-04-30'},'2030-05-01'));assert.throws(()=>reminderFields({title:'Launch',eventDate:'2030-02-30'},'2030-01-01'));});
+test('reminders reject invalid clock times',()=>assert.throws(()=>reminderFields({title:'Launch',eventDate:'2030-05-20',eventTime:'25:90'},'2030-05-01')));
